@@ -1,9 +1,9 @@
 ##############################################################
 ###               S P A C E     E S C A P E                ###
 ##############################################################
-###                  versao Alpha 0.5                      ###
+###                  versao Alpha 0.7                      ###
 ##############################################################
-### Meteoro com velocidades diferentes e tiro funcional!   ###
+### TELA DE VITÓRIA + TELA DE DERROTA + INSERT COIN        ###
 ##############################################################
 
 import pygame
@@ -17,7 +17,7 @@ pygame.init()
 # ----------------------------------------------------------
 WIDTH, HEIGHT = 800, 600
 FPS = 60
-pygame.display.set_caption("🚀 Space Escape - Alpha 0.5")
+pygame.display.set_caption("🚀 Space Escape - Victory & Game Over")
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -32,6 +32,7 @@ ASSETS = {
     "sound_point": "classic-game-action-positive-5-224402.mp3",
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",
     "sound_shoot": "shoot.wav",
+    "sound_coin": "insert_coin.wav",
     "music": "distorted-future-363866.mp3"
 }
 
@@ -45,7 +46,6 @@ GRAY = (40, 40, 40)
 # FUNÇÕES
 # ----------------------------------------------------------
 def load_image(filename, fallback_color, size=None):
-    """Carrega imagem com fallback seguro."""
     if os.path.exists(filename):
         try:
             img = pygame.image.load(filename).convert_alpha()
@@ -54,13 +54,11 @@ def load_image(filename, fallback_color, size=None):
             return img
         except:
             pass
-
     surf = pygame.Surface(size or (50, 50))
     surf.fill(fallback_color)
     return surf
 
 def load_sound(filename):
-    """Carrega som com fallback silencioso."""
     if os.path.exists(filename):
         try:
             return pygame.mixer.Sound(filename)
@@ -79,8 +77,9 @@ laser_img = load_image(ASSETS["laser"], YELLOW, (10, 20))
 sound_point = load_sound(ASSETS["sound_point"])
 sound_hit = load_sound(ASSETS["sound_hit"])
 sound_shoot = load_sound(ASSETS["sound_shoot"])
+sound_coin = load_sound(ASSETS["sound_coin"])
 
-# Música segura
+# Música de fundo
 if os.path.exists(ASSETS["music"]):
     try:
         pygame.mixer.music.load(ASSETS["music"])
@@ -89,126 +88,209 @@ if os.path.exists(ASSETS["music"]):
     except:
         pass
 
-# ----------------------------------------------------------
-# VARIÁVEIS DO JOGO
-# ----------------------------------------------------------
-player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
-player_speed = 7
-
-# Meteoros com velocidades diferentes
-meteor_list = []
-for _ in range(6):
-    x = random.randint(0, WIDTH - 40)
-    y = random.randint(-600, -40)
-    speed = random.randint(3, 8)
-    meteor_list.append({"rect": pygame.Rect(x, y, 40, 40), "speed": speed})
-
-# Tiros
-lasers = []
-laser_speed = 10
-
-score = 0
-lives = 3
-
+font_big = pygame.font.Font(None, 80)
 font = pygame.font.Font(None, 36)
+
 clock = pygame.time.Clock()
-running = True
 
 # ----------------------------------------------------------
-# LOOP PRINCIPAL
+# TELA DE INTRODUÇÃO (INSERT COIN)
 # ----------------------------------------------------------
-while running:
-    clock.tick(FPS)
-    screen.blit(background, (0, 0))
+def tela_insert_coin():
+    blink = 0
 
-    # EVENTOS
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    while True:
+        clock.tick(FPS)
+        screen.blit(background, (0, 0))
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+        title = font_big.render("SPACE ESCAPE", True, WHITE)
+        screen.blit(title, (WIDTH//2 - title.get_width()//2, 120))
+
+        blink += 1
+        if (blink // 30) % 2 == 0:
+            msg = font.render("PRESS SPACE / INSERT COIN", True, WHITE)
+            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 350))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if sound_coin:
+                    sound_coin.play()
+                return
+
+        pygame.display.flip()
+
+# ----------------------------------------------------------
+# TELA DE DERROTA
+# ----------------------------------------------------------
+def tela_game_over(score):
+    blink = 0
+
+    while True:
+        clock.tick(FPS)
+        screen.fill((0, 0, 0))
+
+        over = font_big.render("GAME OVER", True, RED)
+        screen.blit(over, (WIDTH//2 - over.get_width()//2, 150))
+
+        pts = font.render(f"Pontuação final: {score}", True, WHITE)
+        screen.blit(pts, (WIDTH//2 - pts.get_width()//2, 250))
+
+        blink += 1
+        if (blink // 30) % 2 == 0:
+            msg = font.render("PRESS SPACE TO RESTART", True, WHITE)
+            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 400))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                return
+
+# ----------------------------------------------------------
+# TELA DE VITÓRIA
+# ----------------------------------------------------------
+def tela_vitoria(score):
+    blink = 0
+
+    while True:
+        clock.tick(FPS)
+        screen.fill((0, 30, 0))
+
+        win = font_big.render("YOU WIN!", True, YELLOW)
+        screen.blit(win, (WIDTH//2 - win.get_width()//2, 150))
+
+        pts = font.render(f"Pontuação: {score}", True, WHITE)
+        screen.blit(pts, (WIDTH//2 - pts.get_width()//2, 250))
+
+        blink += 1
+        if (blink // 30) % 2 == 0:
+            msg = font.render("PRESS SPACE TO CONTINUE", True, WHITE)
+            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 400))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                return
+
+# ----------------------------------------------------------
+# INICIA NO INSERT COIN
+# ----------------------------------------------------------
+tela_insert_coin()
+
+# ----------------------------------------------------------
+# INICIA O JOGO
+# ----------------------------------------------------------
+while True:  # loop para reiniciar após vitória ou derrota
+    player_rect = player_img.get_rect(center=(WIDTH // 2, HEIGHT - 60))
+    player_speed = 7
+
+    meteor_list = []
+    for _ in range(6):
+        x = random.randint(0, WIDTH - 40)
+        y = random.randint(-600, -40)
+        speed = random.randint(3, 8)
+        meteor_list.append({"rect": pygame.Rect(x, y, 40, 40), "speed": speed})
+
+    lasers = []
+    laser_speed = 10
+
+    score = 0
+    lives = 3
+    running = True
+
+    # ------------------------------------------------------
+    # LOOP DO JOGO
+    # ------------------------------------------------------
+    while running:
+        clock.tick(FPS)
+        screen.blit(background, (0, 0))
+
+        # EVENTOS
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 laser_rect = laser_img.get_rect(center=(player_rect.centerx, player_rect.top))
                 lasers.append(laser_rect)
                 if sound_shoot:
                     sound_shoot.play()
 
-    # MOVIMENTO DO PLAYER
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_rect.left > 0:
-        player_rect.x -= player_speed
-    if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
-        player_rect.x += player_speed
+        # MOVIMENTO PLAYER
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_rect.left > 0:
+            player_rect.x -= player_speed
+        if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
+            player_rect.x += player_speed
 
-    # MOVIMENTO DOS TIROS
-    for laser in lasers[:]:
-        laser.y -= laser_speed
-        if laser.y < -20:
-            lasers.remove(laser)
-
-    # MOVIMENTO DOS METEOROS
-    for meteor in meteor_list:
-        rect = meteor["rect"]
-        rect.y += meteor["speed"]
-
-        # Saiu da tela
-        if rect.y > HEIGHT:
-            rect.y = random.randint(-300, -40)
-            rect.x = random.randint(0, WIDTH - rect.width)
-            meteor["speed"] = random.randint(3, 8)
-            score += 1
-            if sound_point:
-                sound_point.play()
-
-        # Colisão com jogador
-        if rect.colliderect(player_rect):
-            lives -= 1
-            rect.y = random.randint(-300, -40)
-            rect.x = random.randint(0, WIDTH - rect.width)
-            meteor["speed"] = random.randint(3, 8)
-            if sound_hit:
-                sound_hit.play()
-            if lives <= 0:
-                running = False
-
-        # Colisão com tiros
+        # TIROS
         for laser in lasers[:]:
-            if rect.colliderect(laser):
+            laser.y -= laser_speed
+            if laser.y < -20:
                 lasers.remove(laser)
-                score += 5
+
+        # METEOROS
+        for meteor in meteor_list:
+            rect = meteor["rect"]
+            rect.y += meteor["speed"]
+
+            if rect.y > HEIGHT:
                 rect.y = random.randint(-300, -40)
                 rect.x = random.randint(0, WIDTH - rect.width)
                 meteor["speed"] = random.randint(3, 8)
+                score += 1
+                if sound_point:
+                    sound_point.play()
 
-    # DESENHO
-    screen.blit(player_img, player_rect)
+            if rect.colliderect(player_rect):
+                lives -= 1
+                rect.y = random.randint(-300, -40)
+                rect.x = random.randint(0, WIDTH - rect.width)
+                meteor["speed"] = random.randint(3, 8)
+                if sound_hit:
+                    sound_hit.play()
+                if lives <= 0:
+                    running = False
+                    tela_game_over(score)
+                    tela_insert_coin()
 
-    for meteor in meteor_list:
-        screen.blit(meteor_img, meteor["rect"])
+            for laser in lasers[:]:
+                if rect.colliderect(laser):
+                    lasers.remove(laser)
+                    score += 5
+                    rect.y = random.randint(-300, -40)
+                    rect.x = random.randint(0, WIDTH - rect.width)
+                    meteor["speed"] = random.randint(3, 8)
 
-    for laser in lasers:
-        screen.blit(laser_img, laser)
+        # CONDIÇÃO DE VITÓRIA
+        if score >= 100:  # << PONTO PARA GANHAR
+            tela_vitoria(score)
+            tela_insert_coin()
 
-    text = font.render(f"Pontos: {score}   Vidas: {lives}", True, WHITE)
-    screen.blit(text, (10, 10))
+        # DESENHO
+        screen.blit(player_img, player_rect)
 
-    pygame.display.flip()
+        for meteor in meteor_list:
+            screen.blit(meteor_img, meteor["rect"])
 
-# ----------------------------------------------------------
-# FIM DO JOGO
-# ----------------------------------------------------------
-pygame.mixer.music.stop()
-screen.fill((20, 20, 20))
-end_text = font.render("Fim de jogo! Pressione qualquer tecla para sair.", True, WHITE)
-final_score = font.render(f"Pontuação final: {score}", True, WHITE)
-screen.blit(end_text, (150, 260))
-screen.blit(final_score, (300, 300))
-pygame.display.flip()
+        for laser in lasers:
+            screen.blit(laser_img, laser)
 
-waiting = True
-while waiting:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
-            waiting = False
+        hud = font.render(f"Pontos: {score}   Vidas: {lives}", True, WHITE)
+        screen.blit(hud, (10, 10))
 
-pygame.quit()
+        pygame.display.flip()
