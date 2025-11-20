@@ -1,10 +1,9 @@
 ##############################################################
 ###               S P A C E     E S C A P E                ###
 ##############################################################
-###                  versao Beta 1.0                       ###
+###                  versao Beta 1.1                       ###
 ##############################################################
-###       3 FASES DISTINTAS (DIFICULDADE PROGRESSIVA)      ###
-###       + METEORO FATAL VERDE (DANO -2)                  ###
+###       + SALVAMENTO E EXIBIÇÃO DE HIGH SCORES           ###
 ##############################################################
 
 import pygame
@@ -19,7 +18,8 @@ pygame.init()
 # ----------------------------------------------------------
 WIDTH, HEIGHT = 800, 600
 FPS = 60
-pygame.display.set_caption("🚀 Space Escape - Fases")
+SCORE_FILE = "highscores.txt" # Arquivo para salvar as pontuações
+pygame.display.set_caption("🚀 Space Escape - High Scores")
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -88,6 +88,59 @@ YELLOW = (255, 255, 80)
 GREEN = (80, 255, 80)
 PURPLE = (150, 0, 150)  # Cor para o meteoro fatal
 GRAY = (40, 40, 40)
+
+
+# ----------------------------------------------------------
+# FUNÇÕES DE MANIPULAÇÃO DE HIGH SCORES
+# ----------------------------------------------------------
+def load_high_scores():
+    """Carrega as pontuações do arquivo e retorna a lista ordenada."""
+    scores = []
+    if os.path.exists(SCORE_FILE):
+        try:
+            with open(SCORE_FILE, 'r') as f:
+                for line in f:
+                    try:
+                        scores.append(int(line.strip()))
+                    except ValueError:
+                        continue # Ignora linhas não numéricas
+        except:
+            pass
+            
+    # Ordena do maior para o menor e retorna os 5 primeiros
+    scores.sort(reverse=True)
+    return scores[:5]
+
+def save_high_score(score):
+    """Adiciona a nova pontuação e salva as 5 melhores no arquivo."""
+    
+    # 1. Carrega todas as pontuações existentes (não apenas as 5 melhores)
+    all_scores = []
+    if os.path.exists(SCORE_FILE):
+        try:
+            with open(SCORE_FILE, 'r') as f:
+                for line in f:
+                    try:
+                        all_scores.append(int(line.strip()))
+                    except ValueError:
+                        continue
+        except:
+            pass
+
+    # 2. Adiciona a nova pontuação
+    all_scores.append(score)
+    
+    # 3. Ordena e pega as 5 melhores
+    all_scores.sort(reverse=True)
+    top_5_scores = all_scores[:5]
+
+    # 4. Salva as 5 melhores de volta no arquivo
+    try:
+        with open(SCORE_FILE, 'w') as f:
+            for s in top_5_scores:
+                f.write(f"{s}\n")
+    except:
+        print("Erro ao salvar High Scores.")
 
 
 # ----------------------------------------------------------
@@ -170,18 +223,37 @@ def tela_insert_coin():
 
     # Carrega o background inicial
     background = load_image(ASSETS["background_default"], GRAY, (WIDTH, HEIGHT))
+    
+    # Carrega os High Scores
+    high_scores = load_high_scores()
 
     while True:
         clock.tick(FPS)
         screen.blit(background, (0, 0))
 
         title = font_big.render("SPACE ESCAPE", True, WHITE)
-        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 120))
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
+        
+        # --- Desenha High Scores ---
+        score_title = font_medium.render("HIGH SCORES", True, YELLOW)
+        screen.blit(score_title, (WIDTH // 2 - score_title.get_width() // 2, 200))
+        
+        score_y = 250
+        if high_scores:
+            for i, score in enumerate(high_scores):
+                score_msg = font.render(f"{i+1}. {score}", True, WHITE)
+                screen.blit(score_msg, (WIDTH // 2 - score_msg.get_width() // 2, score_y))
+                score_y += 30
+        else:
+            no_score_msg = font.render("SEM PONTUAÇÕES REGISTRADAS", True, GRAY)
+            screen.blit(no_score_msg, (WIDTH // 2 - no_score_msg.get_width() // 2, score_y))
+        # ---------------------------
 
         blink += 1
         if (blink // 30) % 2 == 0:
-            msg = font.render("PRESSIONE ESPAÇO / INSERT COIN", True, WHITE)
-            screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 350))
+            msg = font.render("PRESSIONE ESPAÇO / INSERT COIN", True, RED)
+            # Posiciona a mensagem abaixo dos scores
+            screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, HEIGHT - 80))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -199,6 +271,9 @@ def tela_insert_coin():
 def tela_game_over(score, max_phase):
     blink = 0
     pygame.mixer.music.stop()
+    
+    # SALVA A PONTUAÇÃO ANTES DE ENTRAR NO LOOP
+    save_high_score(score) 
 
     while True:
         clock.tick(FPS)
@@ -232,6 +307,9 @@ def tela_game_over(score, max_phase):
 def tela_vitoria(score):
     blink = 0
     pygame.mixer.music.stop()
+    
+    # SALVA A PONTUAÇÃO ANTES DE ENTRAR NO LOOP
+    save_high_score(score)
 
     while True:
         clock.tick(FPS)
