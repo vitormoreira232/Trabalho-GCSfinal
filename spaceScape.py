@@ -230,12 +230,20 @@ while True:  # loop para reiniciar após vitória ou derrota
                 if sound_shoot:
                     sound_shoot.play()
 
-        # MOVIMENTO PLAYER
+        # MOVIMENTO PLAYER (AGORA COM CIMA E BAIXO)
         keys = pygame.key.get_pressed()
+
+        # Esquerda / Direita
         if keys[pygame.K_LEFT] and player_rect.left > 0:
             player_rect.x -= player_speed
         if keys[pygame.K_RIGHT] and player_rect.right < WIDTH:
             player_rect.x += player_speed
+
+        # Cima / Baixo
+        if keys[pygame.K_UP] and player_rect.top > 0:
+            player_rect.y -= player_speed
+        if keys[pygame.K_DOWN] and player_rect.bottom < HEIGHT:
+            player_rect.y += player_speed
 
         # TIROS
         for laser in lasers[:]:
