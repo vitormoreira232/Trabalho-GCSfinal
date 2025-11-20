@@ -1,10 +1,11 @@
 ##############################################################
 ###               S P A C E     E S C A P E                ###
 ##############################################################
-###                  versao Alpha 0.8                      ###
+###                  versao Alpha 0.9                      ###
 ##############################################################
 ### TELA DE VITÓRIA + TELA DE DERROTA + INSERT COIN        ###
 ###      + METEORO DE VIDA (EXTRA LIFE METEOR)             ###
+###      + METEORO DE DANO AUMENTADO (FATAL METEOR)        ###
 ##############################################################
 
 import pygame
@@ -29,7 +30,8 @@ ASSETS = {
     "background": "fundo_espacial.png",
     "player": "nave001.png",
     "meteor": "meteoro001.png",
-    "meteor_life": "meteoroVerde.png",  # <-- meteoro especial
+    "meteor_life": "meteoroVerde.png",  # <-- meteoro especial: +1 vida
+    "meteor_fatal": "meteoroVermelho.png",  # <-- NOVO meteoro: -2 vidas
     "laser": "laser.png",
     "sound_point": "classic-game-action-positive-5-224402.mp3",
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",
@@ -45,6 +47,8 @@ BLUE = (60, 100, 255)
 YELLOW = (255, 255, 80)
 GREEN = (80, 255, 80)
 GRAY = (40, 40, 40)
+DARK_RED = (150, 0, 0)  # Cor para o fallback do meteoro fatal
+
 
 # ----------------------------------------------------------
 # FUNÇÕES
@@ -62,6 +66,7 @@ def load_image(filename, fallback_color, size=None):
     surf.fill(fallback_color)
     return surf
 
+
 def load_sound(filename):
     if os.path.exists(filename):
         try:
@@ -70,6 +75,7 @@ def load_sound(filename):
             return None
     return None
 
+
 # ----------------------------------------------------------
 # CARREGAMENTO
 # ----------------------------------------------------------
@@ -77,6 +83,7 @@ background = load_image(ASSETS["background"], GRAY, (WIDTH, HEIGHT))
 player_img = load_image(ASSETS["player"], BLUE, (80, 60))
 meteor_img = load_image(ASSETS["meteor"], RED, (40, 40))
 meteor_life_img = load_image(ASSETS["meteor_life"], GREEN, (45, 45))  # meteoro especial
+meteor_fatal_img = load_image(ASSETS["meteor_fatal"], DARK_RED, (50, 50))  # NOVO meteoro fatal
 laser_img = load_image(ASSETS["laser"], YELLOW, (10, 20))
 
 sound_point = load_sound(ASSETS["sound_point"])
@@ -99,6 +106,7 @@ font = pygame.font.Font(None, 36)
 
 clock = pygame.time.Clock()
 
+
 # ----------------------------------------------------------
 # TELA DE INTRODUÇÃO (INSERT COIN)
 # ----------------------------------------------------------
@@ -110,12 +118,12 @@ def tela_insert_coin():
         screen.blit(background, (0, 0))
 
         title = font_big.render("SPACE ESCAPE", True, WHITE)
-        screen.blit(title, (WIDTH//2 - title.get_width()//2, 120))
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 120))
 
         blink += 1
         if (blink // 30) % 2 == 0:
             msg = font.render("PRESS SPACE / INSERT COIN", True, WHITE)
-            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 350))
+            screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 350))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -129,6 +137,7 @@ def tela_insert_coin():
 
         pygame.display.flip()
 
+
 # ----------------------------------------------------------
 # TELA DE DERROTA
 # ----------------------------------------------------------
@@ -140,15 +149,15 @@ def tela_game_over(score):
         screen.fill((0, 0, 0))
 
         over = font_big.render("GAME OVER", True, RED)
-        screen.blit(over, (WIDTH//2 - over.get_width()//2, 150))
+        screen.blit(over, (WIDTH // 2 - over.get_width() // 2, 150))
 
         pts = font.render(f"Pontuação final: {score}", True, WHITE)
-        screen.blit(pts, (WIDTH//2 - pts.get_width()//2, 250))
+        screen.blit(pts, (WIDTH // 2 - pts.get_width() // 2, 250))
 
         blink += 1
         if (blink // 30) % 2 == 0:
             msg = font.render("PRESS SPACE TO RESTART", True, WHITE)
-            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 400))
+            screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 400))
 
         pygame.display.flip()
 
@@ -159,6 +168,7 @@ def tela_game_over(score):
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 return
+
 
 # ----------------------------------------------------------
 # TELA DE VITÓRIA
@@ -171,15 +181,15 @@ def tela_vitoria(score):
         screen.fill((0, 30, 0))
 
         win = font_big.render("YOU WIN!", True, YELLOW)
-        screen.blit(win, (WIDTH//2 - win.get_width()//2, 150))
+        screen.blit(win, (WIDTH // 2 - win.get_width() // 2, 150))
 
         pts = font.render(f"Pontuação: {score}", True, WHITE)
-        screen.blit(pts, (WIDTH//2 - pts.get_width()//2, 250))
+        screen.blit(pts, (WIDTH // 2 - pts.get_width() // 2, 250))
 
         blink += 1
         if (blink // 30) % 2 == 0:
             msg = font.render("PRESS SPACE TO CONTINUE", True, WHITE)
-            screen.blit(msg, (WIDTH//2 - msg.get_width()//2, 400))
+            screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, 400))
 
         pygame.display.flip()
 
@@ -190,6 +200,38 @@ def tela_vitoria(score):
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 return
+
+
+# ----------------------------------------------------------
+# FUNÇÃO AUXILIAR PARA CRIAR NOVO METEORO (RESET/REAPARECIMENTO)
+# ----------------------------------------------------------
+def create_new_meteor(rect_width, rect_height):
+    """Gera um dicionário para um novo meteoro, escolhendo o tipo aleatoriamente."""
+    x = random.randint(0, WIDTH - rect_width)
+    y = random.randint(-400, -40)
+    speed = random.randint(3, 8)
+
+    # Lógica de probabilidade para os tipos de meteoro
+    chance = random.randint(1, 100)
+    if chance <= 8:  # 8% de chance (1 em 12.5) para meteoro de vida
+        tipo = "life"
+        # Ajusta tamanho para imagem do meteoro de vida
+        rect = pygame.Rect(x, y, 45, 45)
+    elif chance >= 98:  # 2% de chance (1 em 50) para meteoro fatal
+        tipo = "fatal"
+        # Ajusta tamanho para imagem do meteoro fatal
+        rect = pygame.Rect(x, y, 50, 50)
+    else:  # Chance restante para meteoro normal
+        tipo = "normal"
+        # Ajusta tamanho para imagem do meteoro normal
+        rect = pygame.Rect(x, y, 40, 40)
+
+    return {
+        "rect": rect,
+        "speed": speed,
+        "type": tipo
+    }
+
 
 # ----------------------------------------------------------
 # INICIA NO INSERT COIN
@@ -204,19 +246,9 @@ while True:
     player_speed = 7
 
     meteor_list = []
+    # Cria o número inicial de meteoros usando a nova função
     for _ in range(6):
-        x = random.randint(0, WIDTH - 40)
-        y = random.randint(-600, -40)
-        speed = random.randint(3, 8)
-
-        # 1 em 8 meteoro é um meteoro de vida
-        tipo = "life" if random.randint(1, 8) == 1 else "normal"
-
-        meteor_list.append({
-            "rect": pygame.Rect(x, y, 40, 40),
-            "speed": speed,
-            "type": tipo
-        })
+        meteor_list.append(create_new_meteor(40, 40))  # O tamanho inicial aqui é um chute seguro
 
     lasers = []
     laser_speed = 10
@@ -263,64 +295,78 @@ while True:
                 lasers.remove(laser)
 
         # METEOROS
-        for meteor in meteor_list:
+        for i, meteor in enumerate(meteor_list):
             rect = meteor["rect"]
             rect.y += meteor["speed"]
 
-            # Reset meteoro
+            # --- Reset meteoro ---
             if rect.y > HEIGHT:
-                rect.x = random.randint(0, WIDTH - rect.width)
-                rect.y = random.randint(-300, -40)
-                meteor["speed"] = random.randint(3, 8)
-                meteor["type"] = "life" if random.randint(1, 8) == 1 else "normal"
 
-                # pontos apenas meteoro normal
+                # Se for um meteoro normal que sai da tela, ganha 1 ponto
                 if meteor["type"] == "normal":
                     score += 1
                     if sound_point:
                         sound_point.play()
 
-            # COLISÃO COM O PLAYER
+                # Substitui o meteoro por um novo (novo tipo e nova posição)
+                meteor_list[i] = create_new_meteor(40, 40)  # O tamanho aqui é um chute seguro
+
+            # --- COLISÃO COM O PLAYER ---
             if rect.colliderect(player_rect):
+
                 if meteor["type"] == "normal":
                     lives -= 1
                     if sound_hit:
                         sound_hit.play()
-                else:
+
+                elif meteor["type"] == "life":
                     lives += 1
                     if sound_life:
                         sound_life.play()
 
-                rect.x = random.randint(0, WIDTH - rect.width)
-                rect.y = random.randint(-300, -40)
-                meteor["speed"] = random.randint(3, 8)
+                elif meteor["type"] == "fatal":
+                    lives -= 2  # Tira 2 vidas
+                    if sound_hit:
+                        sound_hit.play()
+
+                # Substitui o meteoro colidido por um novo
+                meteor_list[i] = create_new_meteor(40, 40)
 
                 if lives <= 0:
                     running = False
-                    tela_game_over(score)
-                    tela_insert_coin()
+                    # O loop principal cuidará da tela de Game Over/Insert Coin
+                    break
 
-            # COLISÃO COM TIRO
+            # --- COLISÃO COM TIRO ---
             for laser in lasers[:]:
                 if rect.colliderect(laser):
                     lasers.remove(laser)
 
                     if meteor["type"] == "normal":
                         score += 5
-                    else:
+
+                    elif meteor["type"] == "life":
                         lives += 1
                         if sound_life:
                             sound_life.play()
 
-                    rect.x = random.randint(0, WIDTH - rect.width)
-                    rect.y = random.randint(-300, -40)
-                    meteor["speed"] = random.randint(3, 8)
-                    meteor["type"] = "life" if random.randint(1, 8) == 1 else "normal"
+                    # O meteoro fatal também deve ser destruído pelo tiro, mas não concede bônus
+                    # ou penalidade de vida/pontos.
+                    # elif meteor["type"] == "fatal":
+                    #    pass
+
+                    # Substitui o meteoro destruído por um novo
+                    meteor_list[i] = create_new_meteor(40, 40)
+                    break  # Sai do loop de lasers, pois o meteoro foi destruído
+
+        if not running:
+            break
 
         # VITÓRIA
         if score >= 100:
             tela_vitoria(score)
             tela_insert_coin()
+            running = False  # Sai do loop do jogo e volta para o loop principal
 
         # DESENHO
         screen.blit(player_img, player_rect)
@@ -328,6 +374,8 @@ while True:
         for meteor in meteor_list:
             if meteor["type"] == "life":
                 screen.blit(meteor_life_img, meteor["rect"])
+            elif meteor["type"] == "fatal":
+                screen.blit(meteor_fatal_img, meteor["rect"])  # Desenha o meteoro fatal
             else:
                 screen.blit(meteor_img, meteor["rect"])
 
@@ -338,3 +386,11 @@ while True:
         screen.blit(hud, (10, 10))
 
         pygame.display.flip()
+
+    # Lógica de fim de jogo após sair do loop 'while running'
+    if lives <= 0:
+        tela_game_over(score)
+        tela_insert_coin()
+    elif score >= 100:
+        # Já passou pelas telas de vitória e insert coin
+        pass
