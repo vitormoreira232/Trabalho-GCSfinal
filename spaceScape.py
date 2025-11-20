@@ -363,7 +363,7 @@ while True:
             break
 
         # VITÓRIA
-        if score >= 100:
+        if score >= 1000:
             tela_vitoria(score)
             tela_insert_coin()
             running = False  # Sai do loop do jogo e volta para o loop principal
