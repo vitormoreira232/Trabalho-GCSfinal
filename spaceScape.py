@@ -29,7 +29,7 @@ ASSETS = {
     "background": "fundo_espacial.png",
     "player": "nave001.png",
     "meteor": "meteoro001.png",
-    "meteor_life": "meteoro_vida.png",  # <-- meteoro especial
+    "meteor_life": "meteoroVerde.png",  # <-- meteoro especial
     "laser": "laser.png",
     "sound_point": "classic-game-action-positive-5-224402.mp3",
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",
