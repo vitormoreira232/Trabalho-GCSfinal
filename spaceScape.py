@@ -37,7 +37,7 @@ ASSETS = {
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",
     "sound_shoot": "shoot.wav",
     "sound_coin": "insert_coin.wav",
-    "sound_life": "life_up.wav",  # <-- som opcional
+    "sound_life": "somVida.mp3",  # <-- som opcional
     "music": "distorted-future-363866.mp3"
 }
 
