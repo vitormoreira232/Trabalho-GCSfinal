@@ -1,9 +1,9 @@
 ##############################################################
 ###               S P A C E     E S C A P E                ###
 ##############################################################
-###                  versao Beta 1.1                       ###
+###                  versao Beta 1.2                       ###
 ##############################################################
-###       + SALVAMENTO E EXIBIÇÃO DE HIGH SCORES           ###
+###       + HIGH SCORES APENAS NA MEMÓRIA (SESSÃO ATUAL)   ###
 ##############################################################
 
 import pygame
@@ -14,12 +14,13 @@ import time  # Adicionar para controle de tempo na transição
 pygame.init()
 
 # ----------------------------------------------------------
-# CONFIGURAÇÕES GLOBAIS
+# CONFIGURAÇÕES GLOBAIS E HIGH SCORES NA MEMÓRIA
 # ----------------------------------------------------------
 WIDTH, HEIGHT = 800, 600
 FPS = 60
-SCORE_FILE = "highscores.txt" # Arquivo para salvar as pontuações
-pygame.display.set_caption("🚀 Space Escape - High Scores")
+# Removemos o SCORE_FILE e usamos uma lista em memória:
+HIGH_SCORES = []
+pygame.display.set_caption("🚀 Space Escape - High Scores em Memória")
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -66,7 +67,7 @@ ASSETS = {
     "player": "nave001.png",
     "meteor": "meteoro001.png",
     "meteor_life": "meteoroVerde.png",  # Meteoro +1 vida (mantido)
-    "meteor_fatal_asset": "meteoroVermelho.png",  # NOVO: Usa a imagem verde do usuário para o Fatal
+    "meteor_fatal_asset": "meteoroVermelho.png",  # Usa a imagem para o Fatal
     "laser": "laser.png",
 
     # Sons
@@ -86,61 +87,30 @@ RED = (255, 60, 60)
 BLUE = (60, 100, 255)
 YELLOW = (255, 255, 80)
 GREEN = (80, 255, 80)
-PURPLE = (150, 0, 150)  # Cor para o meteoro fatal
+PURPLE = (150, 0, 150)
 GRAY = (40, 40, 40)
 
 
 # ----------------------------------------------------------
-# FUNÇÕES DE MANIPULAÇÃO DE HIGH SCORES
+# FUNÇÕES DE MANIPULAÇÃO DE HIGH SCORES (IN-MEMORY)
 # ----------------------------------------------------------
 def load_high_scores():
-    """Carrega as pontuações do arquivo e retorna a lista ordenada."""
-    scores = []
-    if os.path.exists(SCORE_FILE):
-        try:
-            with open(SCORE_FILE, 'r') as f:
-                for line in f:
-                    try:
-                        scores.append(int(line.strip()))
-                    except ValueError:
-                        continue # Ignora linhas não numéricas
-        except:
-            pass
-            
-    # Ordena do maior para o menor e retorna os 5 primeiros
-    scores.sort(reverse=True)
-    return scores[:5]
+    """Retorna as pontuações da lista global, ordenadas."""
+    # Garante que a lista está ordenada e limitada ao top 5
+    global HIGH_SCORES
+    HIGH_SCORES.sort(reverse=True)
+    return HIGH_SCORES[:5]
+
 
 def save_high_score(score):
-    """Adiciona a nova pontuação e salva as 5 melhores no arquivo."""
-    
-    # 1. Carrega todas as pontuações existentes (não apenas as 5 melhores)
-    all_scores = []
-    if os.path.exists(SCORE_FILE):
-        try:
-            with open(SCORE_FILE, 'r') as f:
-                for line in f:
-                    try:
-                        all_scores.append(int(line.strip()))
-                    except ValueError:
-                        continue
-        except:
-            pass
+    """Adiciona a nova pontuação à lista global e a ordena."""
+    global HIGH_SCORES
 
-    # 2. Adiciona a nova pontuação
-    all_scores.append(score)
-    
-    # 3. Ordena e pega as 5 melhores
-    all_scores.sort(reverse=True)
-    top_5_scores = all_scores[:5]
+    # 1. Adiciona a nova pontuação
+    HIGH_SCORES.append(score)
 
-    # 4. Salva as 5 melhores de volta no arquivo
-    try:
-        with open(SCORE_FILE, 'w') as f:
-            for s in top_5_scores:
-                f.write(f"{s}\n")
-    except:
-        print("Erro ao salvar High Scores.")
+    # 2. Ordena (para que a próxima tela de Insert Coin mostre corretamente)
+    HIGH_SCORES.sort(reverse=True)
 
 
 # ----------------------------------------------------------
@@ -223,8 +193,8 @@ def tela_insert_coin():
 
     # Carrega o background inicial
     background = load_image(ASSETS["background_default"], GRAY, (WIDTH, HEIGHT))
-    
-    # Carrega os High Scores
+
+    # Carrega os High Scores da memória
     high_scores = load_high_scores()
 
     while True:
@@ -233,19 +203,19 @@ def tela_insert_coin():
 
         title = font_big.render("SPACE ESCAPE", True, WHITE)
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
-        
+
         # --- Desenha High Scores ---
         score_title = font_medium.render("HIGH SCORES", True, YELLOW)
-        screen.blit(score_title, (WIDTH // 2 - score_title.get_width() // 2, 200))
-        
+        screen.blit(score_title, (WIDTH // 2 - score_title.get_width() // 2, 150))
+
         score_y = 250
         if high_scores:
             for i, score in enumerate(high_scores):
-                score_msg = font.render(f"{i+1}. {score}", True, WHITE)
+                score_msg = font.render(f"{i + 1}. {score}", True, WHITE)
                 screen.blit(score_msg, (WIDTH // 2 - score_msg.get_width() // 2, score_y))
                 score_y += 30
         else:
-            no_score_msg = font.render("SEM PONTUAÇÕES REGISTRADAS", True, GRAY)
+            no_score_msg = font.render("SEM PONTUAÇÕES REGISTRADAS", True, WHITE)
             screen.blit(no_score_msg, (WIDTH // 2 - no_score_msg.get_width() // 2, score_y))
         # ---------------------------
 
@@ -271,9 +241,9 @@ def tela_insert_coin():
 def tela_game_over(score, max_phase):
     blink = 0
     pygame.mixer.music.stop()
-    
-    # SALVA A PONTUAÇÃO ANTES DE ENTRAR NO LOOP
-    save_high_score(score) 
+
+    # SALVA A PONTUAÇÃO NA MEMÓRIA
+    save_high_score(score)
 
     while True:
         clock.tick(FPS)
@@ -307,8 +277,8 @@ def tela_game_over(score, max_phase):
 def tela_vitoria(score):
     blink = 0
     pygame.mixer.music.stop()
-    
-    # SALVA A PONTUAÇÃO ANTES DE ENTRAR NO LOOP
+
+    # SALVA A PONTUAÇÃO NA MEMÓRIA
     save_high_score(score)
 
     while True:
