@@ -318,7 +318,7 @@ while True:
                     meteor["type"] = "life" if random.randint(1, 8) == 1 else "normal"
 
         # VITÓRIA
-        if score >= 100:
+        if score >= 1000:
             tela_vitoria(score)
             tela_insert_coin()
 
